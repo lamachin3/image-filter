@@ -146,16 +146,11 @@ func mean(pixels [][]Pixel) {
 func meanBis(pixels [][]Pixel) {
 	for x := 1; x < width-2; x++ {
 		for y := 1; y < height-2; y++ {
-			fmt.Println("md1")
+
 			newRed := getRed(pixels[y+1][x]) + getRed(pixels[y-1][x]) + getRed(pixels[y][x-1]) + getRed(pixels[y][x+1])/4
-			fmt.Println("md2")
 			newGreen := getGreen(pixels[y+1][x]) + getGreen(pixels[y-1][x]) + getGreen(pixels[y][x-1]) + getGreen(pixels[y][x+1])/4
-			fmt.Println("md3")
 			newBlue := getBlue(pixels[y+1][x]) + getBlue(pixels[y-1][x]) + getBlue(pixels[y][x-1]) + getBlue(pixels[y][x+1])/4
-			fmt.Println("md4")
 			newAlpha := getAlpha(pixels[y+1][x]) + getAlpha(pixels[y-1][x]) + getAlpha(pixels[y][x-1]) + getAlpha(pixels[y][x+1])/4
-			fmt.Println("md5")
-			fmt.Println(x, y)
 
 			imgLoaded[y][x] = Pixel{newRed, newGreen, newBlue, newAlpha}
 		}
