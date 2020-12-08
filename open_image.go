@@ -30,5 +30,5 @@ func main() {
 
 	outFile, _ := os.Create("new_logo.png")
 	defer outFile.Close()
-	png.Encode(outFile, imgINSA, nil)
+	png.Encode(outFile, imgINSA)
 }
