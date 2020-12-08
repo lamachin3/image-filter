@@ -10,6 +10,9 @@ import (
     "log"
 )
 
+var height, width = 0, 0
+var pixels [][]Pixel
+
 //type Pixel
 type Pixel struct {
     R int
@@ -17,9 +20,6 @@ type Pixel struct {
     B int
     A int
 }
-
-var height, width = 0, 0
-var pixels [][]Pixel
 
 // crée une matrice à partir d'une image
 // récupère les valeurs RGBA de chaque pixel
@@ -49,36 +49,8 @@ func rgbaToPixel(r uint32, g uint32, b uint32, a uint32) Pixel {
 }
 
 
-func main() {
-    image.RegisterFormat("png", "png", png.Decode, png.DecodeConfig)
-
-    file, err := os.Open("Tapping-Noise-in-Attic-at-Night.png")
-
-    if err != nil {
-        fmt.Println("Error: File could not be opened")
-        os.Exit(1)
-    }
-
-    defer file.Close()
-
-    pixels, err := getPixels(file)
-
-    if err != nil {
-        fmt.Println("Error: Image could not be decoded")
-        os.Exit(1)
-    }
-
-    pixels[100][100] = Pixel{255, 0, 0, 255}
-    fmt.Println(pixels[100][100])
-    fmt.Println(getRed(pixels[100][100]))
-
-    encode()
-
-}
-
 
 func encode() {
-    // Create a colored image of the given width and height.
     img := image.NewRGBA(image.Rect(0, 0, width, height))
 
     for y := 0; y < height; y++ {
@@ -119,6 +91,48 @@ func getGreen(lePixel Pixel) int{
 
 func getBlue(lePixel Pixel) int{
     return lePixel.B
+}
+
+func getAlpha(lePixel Pixel) int{
+    return lePixel.A
+}
+
+
+func main() {
+
+    file, err := os.Open("Tapping-Noise-in-Attic-at-Night.png")
+
+    if err != nil {
+        fmt.Println("Error: File could not be opened")
+        os.Exit(1)
+    }
+
+    defer file.Close()
+
+    pixels, err := getPixels(file)
+
+    if err != nil {
+        fmt.Println("Error: Image could not be decoded")
+        os.Exit(1)
+    }
+
+    mean(pixels)
+    encode()
+
+}
+
+func mean(pixels Pixel){
+	img := image.NewRGBA(image.Rect(0, 0, width, height))
+	for y := 1; y < height-1; y++ {
+        for x := 1; x < width-1; x++ {
+            img.Set(x, y, color.RGBA{
+                R: uint8((getRed(pixels[y+1][x]) + getRed(pixels[y-1][x]) + getRed(pixels[y][x-1]) + getRed(pixels[y][x+1]) / 4)),
+                G: uint8((getGreen(pixels[y+1][x]) + getGreen(pixels[y-1][x]) + getGreen(pixels[y][x-1]) + getGreen(pixels[y][x+1]) / 4)),
+                B: uint8((getBlue(pixels[y+1][x]) + getBlue(pixels[y-1][x]) + getBlue(pixels[y][x-1]) + getBlue(pixels[y][x+1]) / 4)),
+                A: uint8((getAlpha(pixels[y+1][x]) + getAlpha(pixels[y-1][x]) + getAlpha(pixels[y][x-1]) + getAlpha(pixels[y][x+1]) / 4)),
+            })
+        }
+    }
 }
 
 
