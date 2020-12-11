@@ -18,7 +18,7 @@ type Pixel struct {
 	A int
 }
 
-var filterMenu int = 1
+var filterMenu int
 var inputFile, outputFile string
 var height, width = 0, 0
 var imgLoaded [][]Pixel
@@ -98,68 +98,51 @@ func getAlpha(lePixel Pixel) int {
 func main() {
 	fmt.Println("Bienvenue sur notre application de filtres photo.")
 
-	for 1 == 1 {
-		menu()
+	menu()
 
-		file, err := os.Open(inputFile)
+	file, err := os.Open(inputFile)
 
-		if err != nil {
-			fmt.Println("Error: File could not be opened")
-			os.Exit(1)
-		}
-
-		defer file.Close()
-
-		pixels, err := getImg(file)
-
-		if err != nil {
-			fmt.Println("Error: Image could not be decoded")
-			os.Exit(1)
-		}
-
-		switch filterMenu {
-		case 1:
-			toBlackAndWhite(pixels)
-		case 2:
-			meanBis(pixels)
-		}
-		encode()
-
-		fmt.Println("Filtre applique avec succes")
+	if err != nil {
+		fmt.Println("Error: File could not be opened")
+		os.Exit(1)
 	}
+
+	defer file.Close()
+
+	pixels, err := getImg(file)
+
+	if err != nil {
+		fmt.Println("Error: Image could not be decoded")
+		os.Exit(1)
+	}
+
+	switch filterMenu {
+	case 1:
+		blackAndWhite(pixels)
+	case 2:
+		noiseReduction(pixels)
+	}
+	encode()
+
+	fmt.Println("Filtre applique avec succes")
 }
 
-func mean(pixels [][]Pixel) {
-	img := image.NewRGBA(image.Rect(0, 0, width, height))
-	for y := 1; y < height-1; y++ {
-		for x := 1; x < width-1; x++ {
-			img.Set(x, y, color.RGBA{
-				R: uint8((getRed(pixels[y+1][x]) + getRed(pixels[y-1][x]) + getRed(pixels[y][x-1]) + getRed(pixels[y][x+1])/4)),
-				G: uint8((getGreen(pixels[y+1][x]) + getGreen(pixels[y-1][x]) + getGreen(pixels[y][x-1]) + getGreen(pixels[y][x+1])/4)),
-				B: uint8((getBlue(pixels[y+1][x]) + getBlue(pixels[y-1][x]) + getBlue(pixels[y][x-1]) + getBlue(pixels[y][x+1])/4)),
-				A: uint8((getAlpha(pixels[y+1][x]) + getAlpha(pixels[y-1][x]) + getAlpha(pixels[y][x-1]) + getAlpha(pixels[y][x+1])/4)),
-			})
-		}
-	}
-}
-
-func meanBis(pixels [][]Pixel) {
-	for x := 1; x < width-2; x++ {
-		for y := 1; y < height-2; y++ {
-
-			newRed := getRed(pixels[y+1][x]) + getRed(pixels[y-1][x]) + getRed(pixels[y][x-1]) + getRed(pixels[y][x+1])/4
-			newGreen := getGreen(pixels[y+1][x]) + getGreen(pixels[y-1][x]) + getGreen(pixels[y][x-1]) + getGreen(pixels[y][x+1])/4
-			newBlue := getBlue(pixels[y+1][x]) + getBlue(pixels[y-1][x]) + getBlue(pixels[y][x-1]) + getBlue(pixels[y][x+1])/4
-			newAlpha := getAlpha(pixels[y+1][x]) + getAlpha(pixels[y-1][x]) + getAlpha(pixels[y][x-1]) + getAlpha(pixels[y][x+1])/4
+func noiseReduction(pixels [][]Pixel) {
+	for y := 2; y < height-2; y++ {
+		for x := 2; x < width-2; x++ {
+			newRed := (getRed(pixels[y+1][x]) + getRed(pixels[y-1][x]) + getRed(pixels[y][x-1]) + getRed(pixels[y][x+1]) + getRed(pixels[y+1][x+1]) + getRed(pixels[y+1][x-1]) + getRed(pixels[y-1][x+1]) + getRed(pixels[y-1][x-1]) + 7*getRed(pixels[y][x])) / 15
+			newGreen := (getGreen(pixels[y+1][x]) + getGreen(pixels[y-1][x]) + getGreen(pixels[y][x-1]) + getGreen(pixels[y][x+1]) + getGreen(pixels[y+1][x+1]) + getGreen(pixels[y+1][x-1]) + getGreen(pixels[y-1][x+1]) + getGreen(pixels[y-1][x-1]) + 7*getGreen(pixels[y][x])) / 15
+			newBlue := (getBlue(pixels[y+1][x]) + getBlue(pixels[y-1][x]) + getBlue(pixels[y][x-1]) + getBlue(pixels[y][x+1]) + getBlue(pixels[y+1][x+1]) + getBlue(pixels[y+1][x-1]) + getBlue(pixels[y-1][x+1]) + getBlue(pixels[y-1][x-1]) + 7*getBlue(pixels[y][x])) / 15
+			newAlpha := (getAlpha(pixels[y+1][x]) + getAlpha(pixels[y-1][x]) + getAlpha(pixels[y][x-1]) + getAlpha(pixels[y][x+1]) + getAlpha(pixels[y+1][x+1]) + getAlpha(pixels[y+1][x-1]) + getAlpha(pixels[y-1][x+1]) + getAlpha(pixels[y-1][x-1]) + 7*getAlpha(pixels[y][x])) / 15
 
 			imgLoaded[y][x] = Pixel{newRed, newGreen, newBlue, newAlpha}
 		}
 	}
 }
 
-func toBlackAndWhite(img [][]Pixel) {
-	for i := 0; i < len(img); i++ {
-		for j := 0; j < len(img[i]); j++ {
+func blackAndWhite(img [][]Pixel) {
+	for i := 0; i < height-1; i++ {
+		for j := 0; j < width-1; j++ {
 			pixel := img[i][j]
 
 			newRed := (getRed(pixel) + getGreen(pixel) + getBlue(pixel)) / 3
@@ -176,7 +159,7 @@ func menu() {
 	fmt.Println("Choisissez votre filtre :")
 	fmt.Println("1 - Noir et Blanc")
 	fmt.Println("2 - diminution du bruit")
-	fmt.Println("0 - STOP")
+	fmt.Println("0 - Annuler")
 	fmt.Print("-> ")
 	fmt.Scanf("%d", &filterMenu)
 
