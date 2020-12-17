@@ -167,7 +167,7 @@ func menu() {
 	}
 
 	fmt.Print("Qu'elle image voulez-vous traiter : ")
-	fmt.Scanf("%s", &inputFile)
+	fmt.Scanf("\r\n%s", &inputFile)
 	fmt.Print("Donnez un nom à votre nouvelle image : ")
-	fmt.Scanf("%s", &outputFile)
+	fmt.Scanf("\r\n%s", &outputFile)
 }
