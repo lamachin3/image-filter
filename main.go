@@ -10,14 +10,6 @@ import (
 	"os"
 )
 
-//type Pixel
-type Pixel struct {
-	R int
-	G int
-	B int
-	A int
-}
-
 var filterMenu int
 var inputFile, outputFile string
 var height, width = 0, 0
@@ -77,22 +69,6 @@ func encode(out chan Pixel) {
 	if err := f.Close(); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func getRed(lePixel Pixel) int {
-	return lePixel.R
-}
-
-func getGreen(lePixel Pixel) int {
-	return lePixel.G
-}
-
-func getBlue(lePixel Pixel) int {
-	return lePixel.B
-}
-
-func getAlpha(lePixel Pixel) int {
-	return lePixel.A
 }
 
 func main() {
