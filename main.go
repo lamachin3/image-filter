@@ -50,15 +50,15 @@ func rgbaToPixel(r uint32, g uint32, b uint32, a uint32) Pixel {
 	return Pixel{int(r / 257), int(g / 257), int(b / 257), int(a / 257)}
 }
 
-func encode() {
-	img := image.NewRGBA(image.Rect(0, 0, width, height))
+func encode(out chan Pixel) {
+	imgEncoded := image.NewRGBA(image.Rect(0, 0, width, height))
 
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
-			img.Set(x, y, color.RGBA{
-				R: uint8(getRed(imgLoaded[y][x])),
-				G: uint8(getGreen(imgLoaded[y][x])),
-				B: uint8(getBlue(imgLoaded[y][x])),
+			imgEncoded.Set(x, y, color.RGBA{
+				R: uint8(getRed(<-out)),
+				G: uint8(getGreen(<-out)),
+				B: uint8(getBlue(<-out)),
 				A: 255,
 			})
 		}
@@ -69,7 +69,7 @@ func encode() {
 		log.Fatal(err)
 	}
 
-	if err := png.Encode(f, img); err != nil {
+	if err := png.Encode(f, imgEncoded); err != nil {
 		f.Close()
 		log.Fatal(err)
 	}
@@ -96,6 +96,15 @@ func getAlpha(lePixel Pixel) int {
 }
 
 func main() {
+
+	imgEncoded := image.NewRGBA(image.Rect(0, 0, width, height))
+
+	var inputChannel chan Pixel
+	var feedbackChannel chan Pixel
+
+	inputChannel = make(chan Pixel, 10)
+	feedbackChannel = make(chan Pixel, 10)
+
 	fmt.Println("Bienvenue sur notre application de filtres photo.")
 
 	menu()
@@ -118,18 +127,36 @@ func main() {
 
 	switch filterMenu {
 	case 1:
-		blackAndWhite(pixels)
+		for nbRoutine := 0; nbRoutine < 10; nbRoutine++ {
+			go blackAndWhite(inputChannel, feedbackChannel)
+		}
 	case 2:
-		noiseReduction(pixels)
+		for nbRoutine := 0; nbRoutine < 10; nbRoutine++ {
+			go noiseReduction(pixels)
+		}
 	}
-	encode()
+
+	go feedInput(inputChannel, pixels)
+
+	encode(feedbackChannel)
 
 	fmt.Println("Filtre applique avec succes")
 }
 
+// OK ~
+func feedInput(inp chan Pixel, pixels [][]Pixel) {
+	for cptX := 1; cptX < width-1; cptX++ {
+		for cptY := 1; cptY < height-1; cptY++ {
+			toPush := pixels[cptX][cptY]
+			inp <- toPush
+		}
+	}
+	fmt.Printf("#DEBUG All Pushed\n")
+}
+
 func noiseReduction(pixels [][]Pixel) {
-	for y := 2; y < height-2; y++ {
-		for x := 2; x < width-2; x++ {
+	for y := 1; y < height-1; y++ {
+		for x := 1; x < width-1; x++ {
 			newRed := (getRed(pixels[y+1][x]) + getRed(pixels[y-1][x]) + getRed(pixels[y][x-1]) + getRed(pixels[y][x+1]) + getRed(pixels[y+1][x+1]) + getRed(pixels[y+1][x-1]) + getRed(pixels[y-1][x+1]) + getRed(pixels[y-1][x-1]) + 7*getRed(pixels[y][x])) / 15
 			newGreen := (getGreen(pixels[y+1][x]) + getGreen(pixels[y-1][x]) + getGreen(pixels[y][x-1]) + getGreen(pixels[y][x+1]) + getGreen(pixels[y+1][x+1]) + getGreen(pixels[y+1][x-1]) + getGreen(pixels[y-1][x+1]) + getGreen(pixels[y-1][x-1]) + 7*getGreen(pixels[y][x])) / 15
 			newBlue := (getBlue(pixels[y+1][x]) + getBlue(pixels[y-1][x]) + getBlue(pixels[y][x-1]) + getBlue(pixels[y][x+1]) + getBlue(pixels[y+1][x+1]) + getBlue(pixels[y+1][x-1]) + getBlue(pixels[y-1][x+1]) + getBlue(pixels[y-1][x-1]) + 7*getBlue(pixels[y][x])) / 15
@@ -140,18 +167,14 @@ func noiseReduction(pixels [][]Pixel) {
 	}
 }
 
-func blackAndWhite(img [][]Pixel) {
-	for i := 0; i < height-1; i++ {
-		for j := 0; j < width-1; j++ {
-			pixel := img[i][j]
+func blackAndWhite(in chan Pixel, out chan Pixel) {
+	pixel := <-in
 
-			newRed := (getRed(pixel) + getGreen(pixel) + getBlue(pixel)) / 3
-			newGreen := newRed
-			newBlue := newRed
+	newRed := (getRed(pixel) + getGreen(pixel) + getBlue(pixel)) / 3
+	newGreen := newRed
+	newBlue := newRed
 
-			imgLoaded[i][j] = Pixel{newRed, newGreen, newBlue, getAlpha(pixel)}
-		}
-	}
+	out <- Pixel{newRed, newGreen, newBlue, getAlpha(pixel)}
 }
 
 func menu() {
@@ -168,7 +191,7 @@ func menu() {
 	}
 
 	fmt.Print("Qu'elle image voulez-vous traiter : ")
-	fmt.Scanf("\r\n%s", &inputFile)
+	fmt.Scanf("%s", &inputFile)
 	fmt.Print("Donnez un nom à votre nouvelle image : ")
-	fmt.Scanf("\r\n%s", &outputFile)
+	fmt.Scanf("%s", &outputFile)
 }
