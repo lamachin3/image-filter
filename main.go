@@ -73,7 +73,7 @@ func encode(out chan Pixel) {
 
 func main() {
 
-	imgEncoded := image.NewRGBA(image.Rect(0, 0, width, height))
+	//imgEncoded := image.NewRGBA(image.Rect(0, 0, width, height))
 
 	var inputChannel chan Pixel
 	var feedbackChannel chan Pixel
@@ -167,7 +167,7 @@ func menu() {
 	}
 
 	fmt.Print("Qu'elle image voulez-vous traiter : ")
-	fmt.Scanf("%s", &inputFile)
+	fmt.Scanf("\r\n%s", &inputFile)
 	fmt.Print("Donnez un nom à votre nouvelle image : ")
-	fmt.Scanf("%s", &outputFile)
+	fmt.Scanf("\r\n%s", &outputFile)
 }
