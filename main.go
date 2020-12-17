@@ -43,11 +43,11 @@ func rgbaToPixel(r uint32, g uint32, b uint32, a uint32) Pixel {
 }
 
 func encode(out chan Pixel) {
-	imgEncoded := image.NewRGBA(image.Rect(0, 0, width, height))
+	finalImg := image.NewRGBA(image.Rect(0, 0, width, height))
 
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
-			imgEncoded.Set(x, y, color.RGBA{
+			finalImg.Set(x, y, color.RGBA{
 				R: uint8(getRed(<-out)),
 				G: uint8(getGreen(<-out)),
 				B: uint8(getBlue(<-out)),
@@ -61,7 +61,7 @@ func encode(out chan Pixel) {
 		log.Fatal(err)
 	}
 
-	if err := png.Encode(f, imgEncoded); err != nil {
+	if err := png.Encode(f, finalImg); err != nil {
 		f.Close()
 		log.Fatal(err)
 	}
@@ -73,7 +73,7 @@ func encode(out chan Pixel) {
 
 func main() {
 
-	imgEncoded := image.NewRGBA(image.Rect(0, 0, width, height))
+	//imgEncoded := image.NewRGBA(image.Rect(0, 0, width, height))
 
 	var inputChannel chan Pixel
 	var feedbackChannel chan Pixel
