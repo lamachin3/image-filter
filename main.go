@@ -10,6 +10,16 @@ import (
 	"os"
 )
 
+//type Pixel
+type Pixel struct {
+	R    int
+	G    int
+	B    int
+	A    int
+	posX int
+	posY int
+}
+
 var filterMenu int
 var inputFile, outputFile string
 var height, width = 0, 0
@@ -30,38 +40,40 @@ func getImg(file io.Reader) ([][]Pixel, error) {
 	for y := 0; y < height; y++ {
 		var row []Pixel
 		for x := 0; x < width; x++ {
-			row = append(row, rgbaToPixel(img.At(x, y).RGBA()))
+			R, G, B, A := img.At(x, y).RGBA()
+			row = append(row, rgbaToPixel(R, G, B, A, x, y))
 		}
 		imgLoaded = append(imgLoaded, row)
 	}
+
 	return imgLoaded, nil
 }
 
 //conversion uint32 -> uint8
-func rgbaToPixel(r uint32, g uint32, b uint32, a uint32) Pixel {
-	return Pixel{int(r / 257), int(g / 257), int(b / 257), int(a / 257)}
+func rgbaToPixel(r uint32, g uint32, b uint32, a uint32, x int, y int) Pixel {
+	return Pixel{int(r / 257), int(g / 257), int(b / 257), int(a / 257), x, y}
 }
 
-func encode(out chan Pixel) {
-	finalImg := image.NewRGBA(image.Rect(0, 0, width, height))
-
-	for y := 0; y < height; y++ {
-		for x := 0; x < width; x++ {
-			finalImg.Set(x, y, color.RGBA{
-				R: uint8(getRed(<-out)),
-				G: uint8(getGreen(<-out)),
-				B: uint8(getBlue(<-out)),
-				A: 255,
-			})
-		}
+func encode(out chan Pixel, img2Encode *image.RGBA) {
+	for i := 0; i <= (height-1)*(width-1); i++ {
+		pixel := <-out
+		//fmt.Print("(", pixel.posX, ";", pixel.posY, ";", uint8(pixel.A), ") /")
+		img2Encode.Set(pixel.posX, pixel.posY, color.RGBA{
+			R: uint8(pixel.R),
+			G: uint8(pixel.G),
+			B: uint8(pixel.B),
+			A: uint8(pixel.A),
+		})
 	}
+}
 
+func createFile(img2Encode *image.RGBA) {
 	f, err := os.Create(outputFile)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	if err := png.Encode(f, finalImg); err != nil {
+	if err := png.Encode(f, img2Encode); err != nil {
 		f.Close()
 		log.Fatal(err)
 	}
@@ -72,18 +84,18 @@ func encode(out chan Pixel) {
 }
 
 func main() {
-
-	//imgEncoded := image.NewRGBA(image.Rect(0, 0, width, height))
-
 	var inputChannel chan Pixel
 	var feedbackChannel chan Pixel
 
-	inputChannel = make(chan Pixel, 10)
-	feedbackChannel = make(chan Pixel, 10)
+	inputChannel = make(chan Pixel, 1000)
+	feedbackChannel = make(chan Pixel, 1000)
 
 	fmt.Println("Bienvenue sur notre application de filtres photo.")
 
-	menu()
+	//menu()
+	inputFile = "image.png"
+	outputFile = "output.png"
+	filterMenu = 1
 
 	file, err := os.Open(inputFile)
 
@@ -95,6 +107,7 @@ func main() {
 	defer file.Close()
 
 	pixels, err := getImg(file)
+	img2Encode := image.NewRGBA(image.Rect(0, 0, width, height))
 
 	if err != nil {
 		fmt.Println("Error: Image could not be decoded")
@@ -108,21 +121,25 @@ func main() {
 		}
 	case 2:
 		for nbRoutine := 0; nbRoutine < 10; nbRoutine++ {
-			go noiseReduction(pixels)
+			//go noiseReduction(pixels)
 		}
 	}
 
 	go feedInput(inputChannel, pixels)
 
-	encode(feedbackChannel)
+	encode(feedbackChannel, img2Encode)
 
 	fmt.Println("Filtre applique avec succes")
+
+	createFile(img2Encode)
+
+	fmt.Println("Fichier créé avec succes")
 }
 
 // OK ~
 func feedInput(inp chan Pixel, pixels [][]Pixel) {
-	for cptX := 1; cptX < width-1; cptX++ {
-		for cptY := 1; cptY < height-1; cptY++ {
+	for cptX := 0; cptX < height; cptX++ {
+		for cptY := 0; cptY < width; cptY++ {
 			toPush := pixels[cptX][cptY]
 			inp <- toPush
 		}
@@ -130,6 +147,7 @@ func feedInput(inp chan Pixel, pixels [][]Pixel) {
 	fmt.Printf("#DEBUG All Pushed\n")
 }
 
+/*
 func noiseReduction(pixels [][]Pixel) {
 	for y := 1; y < height-1; y++ {
 		for x := 1; x < width-1; x++ {
@@ -141,16 +159,18 @@ func noiseReduction(pixels [][]Pixel) {
 			imgLoaded[y][x] = Pixel{newRed, newGreen, newBlue, newAlpha}
 		}
 	}
-}
+}*/
 
 func blackAndWhite(in chan Pixel, out chan Pixel) {
-	pixel := <-in
+	for {
+		pixel := <-in
 
-	newRed := (getRed(pixel) + getGreen(pixel) + getBlue(pixel)) / 3
-	newGreen := newRed
-	newBlue := newRed
+		newRed := (pixel.R + pixel.G + pixel.B) / 3
+		newGreen := newRed
+		newBlue := newRed
 
-	out <- Pixel{newRed, newGreen, newBlue, getAlpha(pixel)}
+		out <- Pixel{newRed, newGreen, newBlue, pixel.A, pixel.posX, pixel.posY}
+	}
 }
 
 func menu() {
