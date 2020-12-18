@@ -137,7 +137,6 @@ func main() {
 	fmt.Println("Fichier créé avec succes")
 }
 
-// OK ~
 func feedInput(inp chan Pixel, pixels [][]Pixel) {
 	for cptX := 0; cptX < width; cptX++ {
 		for cptY := 0; cptY < height; cptY++ {
