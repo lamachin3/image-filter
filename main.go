@@ -192,11 +192,15 @@ func noiseReduction(img [][]Pixel, in chan Pixel, out chan Pixel, srdSize int) {
 func surroundMean(img [][]Pixel, pixel Pixel, srdSizes []int, chgPixel *Pixel, cpt *int) {
 	for x := pixel.posX - srdSizes[0]; x <= pixel.posX+srdSizes[1]; x++ {
 		for y := pixel.posY - srdSizes[2]; y <= pixel.posY+srdSizes[3]; y++ {
-			chgPixel.R += img[x][y].R
-			chgPixel.G += img[x][y].G
-			chgPixel.B += img[x][y].B
-			chgPixel.A += img[x][y].A
-			*cpt++
+			ratio := 1
+			if x == pixel.posX && y == pixel.posY {
+				ratio = 7
+			}
+			chgPixel.R += img[x][y].R * ratio
+			chgPixel.G += img[x][y].G * ratio
+			chgPixel.B += img[x][y].B * ratio
+			chgPixel.A += img[x][y].A * ratio
+			*cpt += ratio
 		}
 	}
 }
