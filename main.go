@@ -45,7 +45,6 @@ func getImg(file io.Reader) ([][]Pixel, error) {
 		}
 		imgLoaded = append(imgLoaded, row)
 	}
-	fmt.Print("-> ", len(imgLoaded), len(imgLoaded[1366]), width, height)
 	return imgLoaded, nil
 }
 
@@ -142,7 +141,6 @@ func feedInput(inp chan Pixel, pixels [][]Pixel) {
 			toPush := pixels[cptX][cptY]
 			inp <- toPush
 		}
-
 	}
 	fmt.Printf("#DEBUG All Pushed\n")
 }
@@ -158,16 +156,16 @@ func noiseReduction(img [][]Pixel, in chan Pixel, out chan Pixel, srdSize int) {
 			switch pixel.posY {
 			case 0:
 				surroundMean(img, pixel, []int{0, srdSize, 0, srdSize}, &chgPixel, &cpt)
-			case height:
+			case height - 1:
 				surroundMean(img, pixel, []int{0, srdSize, srdSize, 0}, &chgPixel, &cpt)
 			default:
 				surroundMean(img, pixel, []int{0, srdSize, srdSize, srdSize}, &chgPixel, &cpt)
 			}
-		case width:
+		case width - 1:
 			switch pixel.posY {
 			case 0:
 				surroundMean(img, pixel, []int{srdSize, 0, 0, srdSize}, &chgPixel, &cpt)
-			case height:
+			case height - 1:
 				surroundMean(img, pixel, []int{srdSize, 0, srdSize, 0}, &chgPixel, &cpt)
 			default:
 				surroundMean(img, pixel, []int{srdSize, 0, srdSize, srdSize}, &chgPixel, &cpt)
@@ -176,7 +174,7 @@ func noiseReduction(img [][]Pixel, in chan Pixel, out chan Pixel, srdSize int) {
 			switch pixel.posY {
 			case 0:
 				surroundMean(img, pixel, []int{srdSize, srdSize, 0, srdSize}, &chgPixel, &cpt)
-			case height:
+			case height - 1:
 				surroundMean(img, pixel, []int{srdSize, srdSize, srdSize, 0}, &chgPixel, &cpt)
 			default:
 				surroundMean(img, pixel, []int{srdSize, srdSize, srdSize, srdSize}, &chgPixel, &cpt)
@@ -192,17 +190,15 @@ func noiseReduction(img [][]Pixel, in chan Pixel, out chan Pixel, srdSize int) {
 }
 
 func surroundMean(img [][]Pixel, pixel Pixel, srdSizes []int, chgPixel *Pixel, cpt *int) {
-	//fmt.Print("-", pixel.posX)
 	for x := pixel.posX - srdSizes[0]; x <= pixel.posX+srdSizes[1]; x++ {
 		for y := pixel.posY - srdSizes[2]; y <= pixel.posY+srdSizes[3]; y++ {
-			chgPixel.R += img[y][x].R
-			chgPixel.G += img[y][x].G
-			chgPixel.B += img[y][x].B
-			chgPixel.A += img[y][x].A
+			chgPixel.R += img[x][y].R
+			chgPixel.G += img[x][y].G
+			chgPixel.B += img[x][y].B
+			chgPixel.A += img[x][y].A
 			*cpt++
 		}
 	}
-	//fmt.Print(".")
 }
 
 func blackAndWhite(in chan Pixel, out chan Pixel) {
