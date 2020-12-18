@@ -20,8 +20,7 @@ type Pixel struct {
 	posY int
 }
 
-var filterMenu int
-var inputFile, outputFile string
+var filter, inputFile, outputFile string
 var height, width = 0, 0
 var imgLoaded [][]Pixel
 
@@ -82,6 +81,15 @@ func createFile(img2Encode *image.RGBA) {
 }
 
 func main() {
+	if len(os.Args) < 4 {
+		help()
+		os.Exit(0)
+	}
+
+	filter = os.Args[1]
+	inputFile = os.Args[2]
+	outputFile = os.Args[3]
+
 	var inputChannel chan Pixel
 	var feedbackChannel chan Pixel
 
@@ -89,11 +97,6 @@ func main() {
 	feedbackChannel = make(chan Pixel, 10)
 
 	fmt.Println("Bienvenue sur notre application de filtres photo.")
-
-	//menu()
-	inputFile = "image1.png"
-	outputFile = "output.png"
-	filterMenu = 2
 
 	file, err := os.Open(inputFile)
 
@@ -112,12 +115,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	switch filterMenu {
-	case 1:
+	switch filter {
+	case "1":
 		for nbRoutine := 0; nbRoutine < 10; nbRoutine++ {
 			go blackAndWhite(inputChannel, feedbackChannel)
 		}
-	case 2:
+	case "2":
 		for nbRoutine := 0; nbRoutine < 10; nbRoutine++ {
 			go noiseReduction(imgLoaded, inputChannel, feedbackChannel, 1)
 		}
@@ -192,15 +195,11 @@ func noiseReduction(img [][]Pixel, in chan Pixel, out chan Pixel, srdSize int) {
 func surroundMean(img [][]Pixel, pixel Pixel, srdSizes []int, chgPixel *Pixel, cpt *int) {
 	for x := pixel.posX - srdSizes[0]; x <= pixel.posX+srdSizes[1]; x++ {
 		for y := pixel.posY - srdSizes[2]; y <= pixel.posY+srdSizes[3]; y++ {
-			ratio := 1
-			if x == pixel.posX && y == pixel.posY {
-				ratio = 7
-			}
-			chgPixel.R += img[x][y].R * ratio
-			chgPixel.G += img[x][y].G * ratio
-			chgPixel.B += img[x][y].B * ratio
-			chgPixel.A += img[x][y].A * ratio
-			*cpt += ratio
+			chgPixel.R += img[x][y].R
+			chgPixel.G += img[x][y].G
+			chgPixel.B += img[x][y].B
+			chgPixel.A += img[x][y].A
+			*cpt++
 		}
 	}
 }
@@ -217,21 +216,8 @@ func blackAndWhite(in chan Pixel, out chan Pixel) {
 	}
 }
 
-func menu() {
-	fmt.Println("\n")
-	fmt.Println("Choisissez votre filtre :")
-	fmt.Println("1 - Noir et Blanc")
-	fmt.Println("2 - diminution du bruit")
-	fmt.Println("0 - Annuler")
-	fmt.Print("-> ")
-	fmt.Scanf("%d", &filterMenu)
-
-	if filterMenu == 0 {
-		os.Exit(1)
-	}
-
-	fmt.Print("Qu'elle image voulez-vous traiter : ")
-	fmt.Scanf("\r\n%s", &inputFile)
-	fmt.Print("Donnez un nom à votre nouvelle image : ")
-	fmt.Scanf("\r\n%s", &outputFile)
+func help() {
+	fmt.Println("\nMANUAL\n")
+	fmt.Println("image-filter [filter-choice] [input-image] [output-image]\n")
+	fmt.Println("filter-choice:\t1 - black and white\n\t\t2 - noise reduction")
 }
