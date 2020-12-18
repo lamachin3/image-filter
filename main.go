@@ -37,15 +37,15 @@ func getImg(file io.Reader) ([][]Pixel, error) {
 	bounds := img.Bounds()
 	width, height = bounds.Max.X, bounds.Max.Y
 
-	for y := 0; y < height; y++ {
+	for x := 0; x < width; x++ {
 		var row []Pixel
-		for x := 0; x < width; x++ {
+		for y := 0; y < height; y++ {
 			R, G, B, A := img.At(x, y).RGBA()
 			row = append(row, rgbaToPixel(R, G, B, A, x, y))
 		}
 		imgLoaded = append(imgLoaded, row)
 	}
-
+	fmt.Print("-> ", len(imgLoaded), len(imgLoaded[1366]), width, height)
 	return imgLoaded, nil
 }
 
@@ -57,7 +57,6 @@ func rgbaToPixel(r uint32, g uint32, b uint32, a uint32, x int, y int) Pixel {
 func encode(out chan Pixel, img2Encode *image.RGBA) {
 	for i := 0; i <= (height-1)*(width-1); i++ {
 		pixel := <-out
-		//fmt.Print("(", pixel.posX, ";", pixel.posY, ";", uint8(pixel.A), ") /")
 		img2Encode.Set(pixel.posX, pixel.posY, color.RGBA{
 			R: uint8(pixel.R),
 			G: uint8(pixel.G),
@@ -87,15 +86,15 @@ func main() {
 	var inputChannel chan Pixel
 	var feedbackChannel chan Pixel
 
-	inputChannel = make(chan Pixel, 1000)
-	feedbackChannel = make(chan Pixel, 1000)
+	inputChannel = make(chan Pixel, 10)
+	feedbackChannel = make(chan Pixel, 10)
 
 	fmt.Println("Bienvenue sur notre application de filtres photo.")
 
 	//menu()
-	inputFile = "image.png"
+	inputFile = "image1.png"
 	outputFile = "output.png"
-	filterMenu = 1
+	filterMenu = 2
 
 	file, err := os.Open(inputFile)
 
@@ -106,7 +105,7 @@ func main() {
 
 	defer file.Close()
 
-	pixels, err := getImg(file)
+	imgLoaded, err := getImg(file)
 	img2Encode := image.NewRGBA(image.Rect(0, 0, width, height))
 
 	if err != nil {
@@ -121,11 +120,11 @@ func main() {
 		}
 	case 2:
 		for nbRoutine := 0; nbRoutine < 10; nbRoutine++ {
-			//go noiseReduction(pixels)
+			go noiseReduction(imgLoaded, inputChannel, feedbackChannel, 1)
 		}
 	}
 
-	go feedInput(inputChannel, pixels)
+	go feedInput(inputChannel, imgLoaded)
 
 	encode(feedbackChannel, img2Encode)
 
@@ -138,28 +137,73 @@ func main() {
 
 // OK ~
 func feedInput(inp chan Pixel, pixels [][]Pixel) {
-	for cptX := 0; cptX < height; cptX++ {
-		for cptY := 0; cptY < width; cptY++ {
+	for cptX := 0; cptX < width; cptX++ {
+		for cptY := 0; cptY < height; cptY++ {
 			toPush := pixels[cptX][cptY]
 			inp <- toPush
 		}
+
 	}
 	fmt.Printf("#DEBUG All Pushed\n")
 }
 
-/*
-func noiseReduction(pixels [][]Pixel) {
-	for y := 1; y < height-1; y++ {
-		for x := 1; x < width-1; x++ {
-			newRed := (getRed(pixels[y+1][x]) + getRed(pixels[y-1][x]) + getRed(pixels[y][x-1]) + getRed(pixels[y][x+1]) + getRed(pixels[y+1][x+1]) + getRed(pixels[y+1][x-1]) + getRed(pixels[y-1][x+1]) + getRed(pixels[y-1][x-1]) + 7*getRed(pixels[y][x])) / 15
-			newGreen := (getGreen(pixels[y+1][x]) + getGreen(pixels[y-1][x]) + getGreen(pixels[y][x-1]) + getGreen(pixels[y][x+1]) + getGreen(pixels[y+1][x+1]) + getGreen(pixels[y+1][x-1]) + getGreen(pixels[y-1][x+1]) + getGreen(pixels[y-1][x-1]) + 7*getGreen(pixels[y][x])) / 15
-			newBlue := (getBlue(pixels[y+1][x]) + getBlue(pixels[y-1][x]) + getBlue(pixels[y][x-1]) + getBlue(pixels[y][x+1]) + getBlue(pixels[y+1][x+1]) + getBlue(pixels[y+1][x-1]) + getBlue(pixels[y-1][x+1]) + getBlue(pixels[y-1][x-1]) + 7*getBlue(pixels[y][x])) / 15
-			newAlpha := (getAlpha(pixels[y+1][x]) + getAlpha(pixels[y-1][x]) + getAlpha(pixels[y][x-1]) + getAlpha(pixels[y][x+1]) + getAlpha(pixels[y+1][x+1]) + getAlpha(pixels[y+1][x-1]) + getAlpha(pixels[y-1][x+1]) + getAlpha(pixels[y-1][x-1]) + 7*getAlpha(pixels[y][x])) / 15
+func noiseReduction(img [][]Pixel, in chan Pixel, out chan Pixel, srdSize int) {
+	for {
+		var chgPixel Pixel
+		cpt := 0
+		pixel := <-in
 
-			imgLoaded[y][x] = Pixel{newRed, newGreen, newBlue, newAlpha}
+		switch pixel.posX {
+		case 0:
+			switch pixel.posY {
+			case 0:
+				surroundMean(img, pixel, []int{0, srdSize, 0, srdSize}, &chgPixel, &cpt)
+			case height:
+				surroundMean(img, pixel, []int{0, srdSize, srdSize, 0}, &chgPixel, &cpt)
+			default:
+				surroundMean(img, pixel, []int{0, srdSize, srdSize, srdSize}, &chgPixel, &cpt)
+			}
+		case width:
+			switch pixel.posY {
+			case 0:
+				surroundMean(img, pixel, []int{srdSize, 0, 0, srdSize}, &chgPixel, &cpt)
+			case height:
+				surroundMean(img, pixel, []int{srdSize, 0, srdSize, 0}, &chgPixel, &cpt)
+			default:
+				surroundMean(img, pixel, []int{srdSize, 0, srdSize, srdSize}, &chgPixel, &cpt)
+			}
+		default:
+			switch pixel.posY {
+			case 0:
+				surroundMean(img, pixel, []int{srdSize, srdSize, 0, srdSize}, &chgPixel, &cpt)
+			case height:
+				surroundMean(img, pixel, []int{srdSize, srdSize, srdSize, 0}, &chgPixel, &cpt)
+			default:
+				surroundMean(img, pixel, []int{srdSize, srdSize, srdSize, srdSize}, &chgPixel, &cpt)
+			}
+		}
+
+		out <- Pixel{chgPixel.R / cpt,
+			chgPixel.G / cpt,
+			chgPixel.B / cpt,
+			chgPixel.A / cpt,
+			pixel.posX, pixel.posY}
+	}
+}
+
+func surroundMean(img [][]Pixel, pixel Pixel, srdSizes []int, chgPixel *Pixel, cpt *int) {
+	//fmt.Print("-", pixel.posX)
+	for x := pixel.posX - srdSizes[0]; x <= pixel.posX+srdSizes[1]; x++ {
+		for y := pixel.posY - srdSizes[2]; y <= pixel.posY+srdSizes[3]; y++ {
+			chgPixel.R += img[y][x].R
+			chgPixel.G += img[y][x].G
+			chgPixel.B += img[y][x].B
+			chgPixel.A += img[y][x].A
+			*cpt++
 		}
 	}
-}*/
+	//fmt.Print(".")
+}
 
 func blackAndWhite(in chan Pixel, out chan Pixel) {
 	for {
