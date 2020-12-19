@@ -98,27 +98,21 @@ func createFile(img2Encode *image.RGBA) {
 
 // boucle principale
 func main() {
-	// si il n'y a pas tous les arguments, redirection vers le manuel
 	if len(os.Args) < 4 {
 		help()
 		os.Exit(0)
 	}
 
-	// on récupère les paramètres
 	filter = os.Args[1]
 	inputFile = os.Args[2]
 	outputFile = os.Args[3]
 
-	// channels pour les go routines
 	var inputChannel chan Pixel
 	var feedbackChannel chan Pixel
 
 	inputChannel = make(chan Pixel, 10)
 	feedbackChannel = make(chan Pixel, 10)
 
-	fmt.Println("Bienvenue sur notre application de filtres photo.")
-
-	// ouverture de l'image
 	file, err := os.Open(inputFile)
 
 	if err != nil {
@@ -128,7 +122,6 @@ func main() {
 
 	defer file.Close()
 
-	// on crée une matrice de Pixel à partir de l'image
 	imgLoaded, err := getImg(file)
 	img2Encode := image.NewRGBA(image.Rect(0, 0, width, height))
 
@@ -138,30 +131,22 @@ func main() {
 	}
 
 	switch filter {
-	// filtre noir et blanc
 	case "1":
 		for nbRoutine := 0; nbRoutine < 10; nbRoutine++ {
-			// création de 10 go routines
 			go blackAndWhite(inputChannel, feedbackChannel)
 		}
 	case "2":
-		// filtre réducteur de bruit
 		for nbRoutine := 0; nbRoutine < 10; nbRoutine++ {
-			// création de 10 go routines
 			go noiseReduction(imgLoaded, inputChannel, feedbackChannel, 1)
 		}
 	}
 
-	// A DEFINIR !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	go feedInput(inputChannel, imgLoaded)
 
-	// on récupère le résultat produit par une go routine
-	// enregistrement de l'image traitée
 	encode(feedbackChannel, img2Encode)
 
 	fmt.Println("Filtre applique avec succes")
 
-	// écriture de l'image traitée dans un fichier
 	createFile(img2Encode)
 
 	fmt.Println("Fichier créé avec succes")
@@ -183,44 +168,33 @@ func noiseReduction(img [][]Pixel, in chan Pixel, out chan Pixel, srdSize int) {
 		var chgPixel Pixel
 		cpt := 0
 		pixel := <-in
+		posX, posY := pixel.posX, pixel.posY
 
-		switch pixel.posX {
-		// cas du bord gauche
-		case 0:
-			switch pixel.posY {
-			// cas du bord haut
-			case 0:
-				surroundMean(img, pixel, []int{0, srdSize, 0, srdSize}, &chgPixel, &cpt)
-			// cas du bord bas
-			case height - 1:
-				surroundMean(img, pixel, []int{0, srdSize, srdSize, 0}, &chgPixel, &cpt)
-			// cas "normal"
+		switch {
+		case posX-srdSize < 0:
+			switch {
+			case posY-srdSize < 0:
+				surroundMean(img, pixel, []int{posX, srdSize, posY, srdSize}, &chgPixel, &cpt)
+			case posY+srdSize > height-1:
+				surroundMean(img, pixel, []int{posX, srdSize, srdSize, height - posY - 1}, &chgPixel, &cpt)
 			default:
-				surroundMean(img, pixel, []int{0, srdSize, srdSize, srdSize}, &chgPixel, &cpt)
+				surroundMean(img, pixel, []int{posX, srdSize, srdSize, srdSize}, &chgPixel, &cpt)
 			}
-		// cas du bord droit
-		case width - 1:
-			switch pixel.posY {
-			// cas du bord haut
-			case 0:
-				surroundMean(img, pixel, []int{srdSize, 0, 0, srdSize}, &chgPixel, &cpt)
-			// cas du bord bas
-			case height - 1:
-				surroundMean(img, pixel, []int{srdSize, 0, srdSize, 0}, &chgPixel, &cpt)
-			// cas "normal"
+		case posX+srdSize > width-1:
+			switch {
+			case posY-srdSize < 0:
+				surroundMean(img, pixel, []int{srdSize, width - posX - 1, posY, srdSize}, &chgPixel, &cpt)
+			case posY+srdSize > height-1:
+				surroundMean(img, pixel, []int{srdSize, width - posX - 1, srdSize, height - posY - 1}, &chgPixel, &cpt)
 			default:
-				surroundMean(img, pixel, []int{srdSize, 0, srdSize, srdSize}, &chgPixel, &cpt)
+				surroundMean(img, pixel, []int{srdSize, width - posX - 1, srdSize, srdSize}, &chgPixel, &cpt)
 			}
-		// cas "normal"
 		default:
-			switch pixel.posY {
-			// cas du bord haut
-			case 0:
-				surroundMean(img, pixel, []int{srdSize, srdSize, 0, srdSize}, &chgPixel, &cpt)
-			// cas du bord bas
-			case height - 1:
-				surroundMean(img, pixel, []int{srdSize, srdSize, srdSize, 0}, &chgPixel, &cpt)
-			// cas "normal"
+			switch {
+			case posY-srdSize < 0:
+				surroundMean(img, pixel, []int{srdSize, srdSize, posY, srdSize}, &chgPixel, &cpt)
+			case posY+srdSize > height-1:
+				surroundMean(img, pixel, []int{srdSize, srdSize, srdSize, height - posY - 1}, &chgPixel, &cpt)
 			default:
 				surroundMean(img, pixel, []int{srdSize, srdSize, srdSize, srdSize}, &chgPixel, &cpt)
 			}
