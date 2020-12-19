@@ -9,6 +9,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strconv"
 )
 
 //définition d'un type Pixel
@@ -136,9 +137,10 @@ func main() {
 			go blackAndWhite(inputChannel, feedbackChannel)
 		}
 	case "2":
-		var srdSize int
-		fmt.Scan(&srdSize)
-		fmt.Println("Quel intensité de filtration de bruit ? (nombre entre 0 et le nombre de pixel dans la longeur ou la largeur / 2)")
+		srdSize := 1
+		if os.Args[4] != "" {
+			srdSize, err = strconv.Atoi(os.Args[4])
+		}
 		for nbRoutine := 0; nbRoutine < 10; nbRoutine++ {
 			go noiseReduction(imgLoaded, inputChannel, feedbackChannel, srdSize)
 		}
@@ -246,6 +248,6 @@ func blackAndWhite(in chan Pixel, out chan Pixel) {
 func help() {
 	fmt.Println("\nMANUAL\n")
 	fmt.Println("Pour appliqué un filtre lancer le programe avec les instruction suivante\n")
-	fmt.Println("main.go [filter-choice] [input-image] [output-image]\n")
+	fmt.Println("main.go [filter-choice] [input-image] [output-image] [OPTION] {noise-reduction-level}\n")
 	fmt.Println("filter-choice:\t1 - black and white\n\t\t2 - noise reduction")
 }
