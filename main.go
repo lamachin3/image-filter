@@ -25,8 +25,10 @@ type Pixel struct {
 
 // paramètres d'éxécution du programme
 var filter, inputFile, outputFile string
+
 // dimension de l'image
 var height, width = 0, 0
+
 // matrice de Pixel contenant l'image à traiter
 var imgLoaded [][]Pixel
 
@@ -55,7 +57,6 @@ func getImg(file io.Reader) ([][]Pixel, error) {
 	}
 	return imgLoaded, nil
 }
-
 
 //conversion uint32 -> uint8 pour avoir des valeurs comprises entre 0 et 255
 // 0,0,0 (noir) -> 255,255,255 (blanc)
@@ -144,7 +145,7 @@ func main() {
 			go blackAndWhite(inputChannel, feedbackChannel)
 		}
 	case "2":
-	// filtre réducteur de bruit
+		// filtre réducteur de bruit
 		for nbRoutine := 0; nbRoutine < 10; nbRoutine++ {
 			// création de 10 go routines
 			go noiseReduction(imgLoaded, inputChannel, feedbackChannel, 1)
@@ -166,7 +167,7 @@ func main() {
 	fmt.Println("Fichier créé avec succes")
 }
 
-// A DEFINIR !!!
+// fonction qui nous permet d'ajouter chaque pixel dans le channel d'entrée des go routines
 func feedInput(inp chan Pixel, pixels [][]Pixel) {
 	for cptX := 0; cptX < width; cptX++ {
 		for cptY := 0; cptY < height; cptY++ {
@@ -233,7 +234,8 @@ func noiseReduction(img [][]Pixel, in chan Pixel, out chan Pixel, srdSize int) {
 	}
 }
 
-// A DEFINIR !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// Fonction qui pour chaque pixel de l'image, fait la moyenne des 4 composantes entre les pixels autours du pixel courant
+// srdSizes permet de définir la taille du carré qui va être pris en compte dans le calcul de moyenne
 func surroundMean(img [][]Pixel, pixel Pixel, srdSizes []int, chgPixel *Pixel, cpt *int) {
 	for x := pixel.posX - srdSizes[0]; x <= pixel.posX+srdSizes[1]; x++ {
 		for y := pixel.posY - srdSizes[2]; y <= pixel.posY+srdSizes[3]; y++ {
