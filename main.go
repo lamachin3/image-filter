@@ -136,8 +136,11 @@ func main() {
 			go blackAndWhite(inputChannel, feedbackChannel)
 		}
 	case "2":
+		var srdSize int
+		fmt.Scan(&srdSize)
+		fmt.Println("Quel intensité de filtration de bruit ? (nombre entre 0 et le nombre de pixel dans la longeur ou la largeur / 2)")
 		for nbRoutine := 0; nbRoutine < 10; nbRoutine++ {
-			go noiseReduction(imgLoaded, inputChannel, feedbackChannel, 1)
+			go noiseReduction(imgLoaded, inputChannel, feedbackChannel, srdSize)
 		}
 	}
 
@@ -242,6 +245,7 @@ func blackAndWhite(in chan Pixel, out chan Pixel) {
 // appelé si le programme est exécuté sans les 3 paramètres demandés
 func help() {
 	fmt.Println("\nMANUAL\n")
-	fmt.Println("image-filter [filter-choice] [input-image] [output-image]\n")
+	fmt.Println("Pour appliqué un filtre lancer le programe avec les instruction suivante\n")
+	fmt.Println("main.go [filter-choice] [input-image] [output-image]\n")
 	fmt.Println("filter-choice:\t1 - black and white\n\t\t2 - noise reduction")
 }
