@@ -138,7 +138,7 @@ func main() {
 		}
 	case "2":
 		srdSize := 1
-		if os.Args[4] != "" {
+		if len(os.Args) == 5 {
 			srdSize, err = strconv.Atoi(os.Args[4])
 		}
 		for nbRoutine := 0; nbRoutine < 10; nbRoutine++ {
