@@ -247,7 +247,7 @@ func blackAndWhite(in chan Pixel, out chan Pixel) {
 // appelé si le programme est exécuté sans les 3 paramètres demandés
 func help() {
 	fmt.Println("\nMANUAL\n")
-	fmt.Println("Pour appliqué un filtre lancer le programe avec les instruction suivante\n")
+	fmt.Println("Pour appliqué un filtre, lancer le programme avec l'instruction suivante\n")
 	fmt.Println("main.go [filter-choice] [input-image] [output-image] [OPTION] {noise-reduction-level}\n")
 	fmt.Println("filter-choice:\t1 - black and white\n\t\t2 - noise reduction")
 }
